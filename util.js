@@ -123,6 +123,20 @@ exports.isErrorMessage = function(message) {
 };
 
 /**
+ * Determine if message is a warning.
+ *
+ * @param {Object} message - an eslint message
+ * @returns {Boolean} whether the message is a warning message
+ */
+exports.isWarningMessage = function(message) {
+	var level = message.fatal ? 2 : message.severity;
+	if (Array.isArray(level)) {
+		level = level[0];
+	}
+	return (level === 1);
+};
+
+/**
  * Resolve formatter from unknown type (accepts string or function)
  *
  * @throws TypeError thrown if unable to resolve the formatter type

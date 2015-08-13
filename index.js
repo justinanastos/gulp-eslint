@@ -72,34 +72,68 @@ gulpEslint.failOnError = function() {
 };
 
 /**
- * Fail when the stream ends if any eslint error(s) occurred
+ * Fail when the stream ends if any eslint error(s) occurred. Can be configured to also fail on warnings.
  *
+ * @param {Boolean} [failOnWarnings=false] - Fail on warnings as well as errors.
  * @returns {stream} gulp file stream
  */
-gulpEslint.failAfterError = function() {
+gulpEslint.failAfter = function(failOnWarnings) {
 	var errorCount = 0;
+	var warningCount = 0;
 
 	return util.transform(function(file, enc, cb) {
 		var messages = file.eslint && file.eslint.messages || [];
 		messages.forEach(function(message) {
 			if (util.isErrorMessage(message)) {
 				errorCount++;
+			} else if (failOnWarnings && util.isWarningMessage(message)) {
+				warningCount++;
 			}
 		});
 		cb(null, file);
 	}, function(cb) {
 		// Only format results if files has been lint'd
-		if (errorCount > 0) {
+		if (errorCount || (failOnWarnings && warningCount)) {
+			var messageTokens = [];
+
+			if (errorCount) {
+				messageTokens.push(errorCount + (errorCount === 1 ? ' error' : ' errors'));
+			}
+
+			if (failOnWarnings && warningCount) {
+				messageTokens.push(errorCount + (errorCount === 1 ? ' warning' : ' warnings'));
+			}
+
 			this.emit('error', new PluginError(
 				'gulp-eslint',
 				{
 					name: 'ESLintError',
-					message: 'Failed with ' + errorCount + (errorCount === 1 ? ' error' : ' errors')
+					message: 'Failed with ' + messageTokens.join(' and ')
 				}
 			));
 		}
 		cb();
 	});
+};
+
+/**
+ * Fail when the stream ends if any eslint warning(s) occurred
+ *
+ * @param {Boolean} [failOnWarnings=false] - Fail on warnings as well as errors.
+ * @returns {stream} gulp file stream
+ */
+gulpEslint.failAfterError = function() {
+	return gulpEslint.failAfter(false);
+};
+
+/**
+ * Fail when the stream ends if any eslint warning(s) or error(s) occurred
+ *
+ * @param {Boolean} [failOnWarnings=false] - Fail on warnings as well as errors.
+ * @returns {stream} gulp file stream
+ */
+gulpEslint.failAfterWarning = function() {
+	return gulpEslint.failAfter(true);
 };
 
 /**
